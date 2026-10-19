@@ -1,0 +1,23 @@
+{
+  "name": "pendapatan-up5",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "seed": "node --env-file=.env.local scripts/seed.js",
+    "snapshot": "node --env-file=.env.local scripts/snapshot.mjs"
+  },
+  "dependencies": {
+    "framer-motion": "^14.3.0",
+    "mysql2": "^3.11.3",
+    "next": "14.2.15",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "xlsx": "^0.18.5"
+  }
+}
