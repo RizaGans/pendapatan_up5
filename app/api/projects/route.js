@@ -1,3 +1,4 @@
+import { requireAuthenticatedUser } from '../../../lib/auth';
 import { NextResponse } from 'next/server';
 import { pool } from '../../../lib/db';
 import { syncSeedSnapshot } from '../../../lib/sync-seed.mjs';
@@ -6,6 +7,8 @@ const bad = (message, status = 400) => NextResponse.json({ error: message }, { s
 const clean = (value) => typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
 
 export async function POST(req) {
+  const authError = await requireAuthenticatedUser(req);
+  if (authError) return authError;
   let c;
   try {
     const { name } = await req.json();
@@ -27,6 +30,8 @@ export async function POST(req) {
 }
 
 export async function PATCH(req) {
+  const authError = await requireAuthenticatedUser(req);
+  if (authError) return authError;
   let c;
   try {
     const { oldName, name } = await req.json();
@@ -53,6 +58,8 @@ export async function PATCH(req) {
 }
 
 export async function DELETE(req) {
+  const authError = await requireAuthenticatedUser(req);
+  if (authError) return authError;
   let c;
   try {
     const { name } = await req.json();

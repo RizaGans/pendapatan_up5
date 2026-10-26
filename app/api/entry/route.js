@@ -1,17 +1,19 @@
+import { requireAuthenticatedUser } from '../../../lib/auth';
 import { NextResponse } from 'next/server';
 import { pool } from '../../../lib/db';
 import { syncSeedSnapshot } from '../../../lib/sync-seed.mjs';
 
-// Urutan kolom sama dengan indeks array di /api/data
 const COLS = ['t1', 't2', 'lain', 'denda', 'reward', 'kerja_kurang', 'suplisi', 'kontrak', 'status'];
 const bad = (m, status = 400) => NextResponse.json({ error: m }, { status });
 
 export async function PUT(req) {
+  const authError = await requireAuthenticatedUser(req);
+  if (authError) return authError;
   try {
     const b = await req.json();
     const k = b.k;
     const col = COLS[k];
-    if (!col || !(b.year > 1980 ) || !(b.month > 0 && b.month < 12)) return bad('Data tidak valid');
+    if (!col || !Number.isInteger(b.year) || b.year <= 1980 || !Number.isInteger(b.month) || b.month < 0 || b.month > 11) return bad('Data tidak valid');
     let v = b.value;
     if (col === 'status') {
       if (v != null && !/^[bfuplh]$/.test(v)) return bad('Status tidak dikenal');
@@ -50,6 +52,8 @@ export async function PUT(req) {
 }
 
 export async function DELETE(req) {
+  const authError = await requireAuthenticatedUser(req);
+  if (authError) return authError;
   try {
     const b = await req.json();
     if (!(b.year > 1989) || (!b.all && !b.allProjects && !(b.month >= 0 && b.month < 12))) return bad('Data tidak valid');

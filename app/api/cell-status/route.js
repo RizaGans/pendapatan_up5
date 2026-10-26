@@ -1,3 +1,4 @@
+import { requireAuthenticatedUser } from '../../../lib/auth';
 import { NextResponse } from 'next/server';
 import { pool } from '../../../lib/db';
 import { ensureCellStatusTable } from '../../../lib/cell-status.mjs';
@@ -6,6 +7,8 @@ import { syncSeedSnapshot } from '../../../lib/sync-seed.mjs';
 const allowed = new Set(['b', 'f', 'u', 'p', 'l', 'h']);
 
 export async function PUT(req) {
+  const authError = await requireAuthenticatedUser(req);
+  if (authError) return authError;
   try {
     const body = await req.json();
     const field = Number(body.field);

@@ -7,14 +7,35 @@ CREATE TABLE IF NOT EXISTS projects (
   sort_order INT NOT NULL DEFAULT 0
 );
 
--- Tahun yang tersedia di aplikasi, termasuk tahun yang belum memiliki data bulanan.
+CREATE TABLE IF NOT EXISTS app_users (
+  id TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+  username VARCHAR(64) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS app_sessions (
+  token_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL PRIMARY KEY,
+  user_id TINYINT UNSIGNED NOT NULL,
+  expires_at DATETIME NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_app_sessions_expiry (expires_at),
+  CONSTRAINT fk_app_sessions_user FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS app_login_limits (
+  key_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL PRIMARY KEY,
+  window_started DATETIME NOT NULL,
+  attempts SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  INDEX idx_app_login_limits_window (window_started)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS app_years (
   `year` SMALLINT NOT NULL PRIMARY KEY,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Satu baris per project, tahun, dan bulan. Semua angka dalam rupiah.
--- Status: b=Terbayar, f=Terbit FP, u=Verifikasi UIT/UID, p=UPT/UP2D, l=ULTG/ULP, h=HP Region
 CREATE TABLE IF NOT EXISTS monthly (
   project_id INT NOT NULL,
   `year` SMALLINT NOT NULL,
@@ -33,7 +54,6 @@ CREATE TABLE IF NOT EXISTS monthly (
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
--- Status warna opsional per field angka dalam satu bulan.
 CREATE TABLE IF NOT EXISTS monthly_cell_status (
   project_id INT NOT NULL,
   `year` SMALLINT NOT NULL,
@@ -54,4 +74,35 @@ CREATE TABLE IF NOT EXISTS audit_log (
   old_value VARCHAR(40) NULL,
   new_value VARCHAR(40) NULL,
   source VARCHAR(20) NOT NULL DEFAULT 'manual'
+);
+
+CREATE TABLE IF NOT EXISTS project_rows (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  project_id INT NOT NULL,
+  label VARCHAR(120) NOT NULL,
+  operation ENUM('add','subtract') NOT NULL DEFAULT 'add',
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  UNIQUE KEY project_row_label (project_id, label)
+);
+
+CREATE TABLE IF NOT EXISTS project_row_values (
+  row_id INT NOT NULL,
+  `year` SMALLINT NOT NULL,
+  `month` TINYINT NOT NULL,
+  amount BIGINT NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (row_id, `year`, `month`),
+  FOREIGN KEY (row_id) REFERENCES project_rows(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS project_base_rows (
+  project_id INT NOT NULL,
+  field TINYINT NOT NULL,
+  label VARCHAR(120) NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (project_id, field),
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );

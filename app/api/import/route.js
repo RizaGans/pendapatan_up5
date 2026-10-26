@@ -1,3 +1,4 @@
+import { requireAuthenticatedUser } from '../../../lib/auth';
 import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { pool } from '../../../lib/db';
@@ -7,6 +8,8 @@ import { syncSeedSnapshot } from '../../../lib/sync-seed.mjs';
 export const runtime = 'nodejs';
 
 export async function POST(req) {
+  const authError = await requireAuthenticatedUser(req);
+  if (authError) return authError;
   try {
     const fd = await req.formData();
     const f = fd.get('file'), y = +fd.get('year');

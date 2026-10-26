@@ -1,4 +1,3 @@
-// Seed data/seed.json hanya untuk instalasi database yang benar-benar kosong.
 import mysql from 'mysql2/promise';
 import fs from 'fs';
 
@@ -19,12 +18,27 @@ if (Number(state.projects) || Number(state.monthly)) {
   const seedPath = fs.existsSync('data/seed.json') ? 'data/seed.json' : 'data/seed.example.json';
   const D = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
   const ids = {};
+  const customRowIds = {};
   let order = 0, count = 0;
   for (const y of Object.keys(D)) {
     for (const p of D[y]) {
       if (!ids[p.n]) {
         const [r] = await c.query('INSERT INTO projects (name, sort_order) VALUES (?,?)', [p.n, order++]);
         ids[p.n] = r.insertId;
+      }
+      for (const row of p.baseRows || []) {
+        await c.query('INSERT INTO project_base_rows (project_id,field,label,is_active,sort_order) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE label=VALUES(label),is_active=VALUES(is_active),sort_order=VALUES(sort_order)', [ids[p.n], row.field, row.label, row.active ? 1 : 0, row.sortOrder || 0]);
+      }
+      for (const row of p.customRows || []) {
+        const key = `${p.n}:${row.label}`;
+        if (!customRowIds[key]) {
+          const [r] = await c.query('INSERT INTO project_rows (project_id,label,operation,sort_order) VALUES (?,?,?,?)', [ids[p.n], row.label, row.operation === 'subtract' ? 'subtract' : 'add', Object.keys(customRowIds).length]);
+          customRowIds[key] = r.insertId;
+        }
+        for (let i = 0; i < 12; i++) {
+          const amount = Number(row.values?.[i]) || 0;
+          if (amount) await c.query('INSERT INTO project_row_values (row_id,`year`,`month`,amount) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE amount=VALUES(amount)', [customRowIds[key], +y, i + 1, amount]);
+        }
       }
       for (let i = 0; i < 12; i++) {
         const m = p.m[i];

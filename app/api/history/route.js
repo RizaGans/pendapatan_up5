@@ -1,9 +1,12 @@
+import { requireAuthenticatedUser } from '../../../lib/auth';
 import { NextResponse } from 'next/server';
 import { pool } from '../../../lib/db';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req) {
+  const authError = await requireAuthenticatedUser(req);
+  if (authError) return authError;
   try {
     const [rows] = await pool.query(
       `SELECT a.id, a.at, a.year, a.month, a.field, a.old_value, a.new_value, a.source,
@@ -18,6 +21,8 @@ export async function GET() {
 }
 
 export async function DELETE(req) {
+  const authError = await requireAuthenticatedUser(req);
+  if (authError) return authError;
   try {
     const { source } = await req.json();
     if (!['manual', 'impor'].includes(source)) {

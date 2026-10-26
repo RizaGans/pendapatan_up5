@@ -2,3 +2,6 @@ node_modules
 .next
 .env.local
 data/seed.json
+.edge-preview-profile/
+.env*
+!.env.local.example

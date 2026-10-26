@@ -1,9 +1,12 @@
+import { requireAuthenticatedUser } from '../../../lib/auth';
 import { NextResponse } from 'next/server';
 import { pool } from '../../../lib/db';
 
 const bad = (message, status = 400) => NextResponse.json({ error: message }, { status });
 
 export async function POST(req) {
+  const authError = await requireAuthenticatedUser(req);
+  if (authError) return authError;
   try {
     const body = await req.json();
     const year = Number(body.year);
