@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [typing, setTyping] = useState(false);
   const typingTimer = useRef(null);
+  const loginAudio = useRef(null);
 
   useEffect(() => () => window.clearTimeout(typingTimer.current), []);
 
@@ -26,6 +27,14 @@ export default function LoginPage() {
   async function submit(event) {
     event.preventDefault();
     if (submitting) return;
+    if (!loginAudio.current) {
+      loginAudio.current = new Audio('/sounds/sound.mp3');
+      loginAudio.current.preload = 'auto';
+    }
+    loginAudio.current.currentTime = 0;
+    void loginAudio.current.play().catch((cause) => {
+      console.warn('Audio login tidak dapat diputar:', cause);
+    });
     setSubmitting(true);
     setError('');
     try {

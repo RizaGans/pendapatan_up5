@@ -288,11 +288,20 @@ h1 {
 
 .year-pills {
   display: flex;
-  flex-wrap: wrap;
+  flex: 0 1 68%;
+  max-width: 68%;
+  flex-wrap: nowrap;
   gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 3px 2px 7px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ln) transparent;
+  overscroll-behavior-inline: contain;
 }
 
 .year-chip {
+  flex: 0 0 auto;
   cursor: pointer;
 }
 
@@ -351,6 +360,13 @@ h1 {
 
 .manual-controls .project-search {
   min-width: 190px;
+}
+
+.manual-controls > .action-menu > summary {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  box-sizing: border-box;
 }
 
 .manual-actions {
@@ -1002,6 +1018,20 @@ table.t {
   border: 1px solid var(--ln);
   border-radius: 16px;
   background: var(--sf);
+}
+
+.data-export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  .data-export-actions {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 
 .data-filters label {
@@ -3456,12 +3486,18 @@ main {
     padding: 14px;
   }
 
+  .year-pills {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+  }
+
   .year-chip {
-    flex: 1;
+    flex: 0 0 auto;
   }
 
   .year-chip span {
-    min-width: 0;
+    min-width: 66px;
   }
 
   .manual-controls {
@@ -3473,6 +3509,7 @@ main {
   .manual-controls label,
   .manual-controls .project-search {
     min-width: 0;
+    grid-column: 1 / -1;
   }
 
   .manual-controls select,
@@ -3481,12 +3518,18 @@ main {
   }
 
   .manual-controls #newp {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 
-  .manual-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+  .manual-controls > .action-menu,
+  .manual-controls > .action-menu > summary {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .manual-controls > .action-menu > summary {
+    justify-content: center;
+    text-align: center;
   }
 
   .manual-actions > .btn,
@@ -3496,7 +3539,7 @@ main {
     text-align: center;
   }
 
-  .manual-actions .action-menu-items {
+  .manual-controls .action-menu-items {
     left: auto;
     right: 0;
   }
@@ -4545,6 +4588,46 @@ main {
   }
   .login-footer p:last-child {
     display: none;
+  }
+}
+
+/* Year filters use a compact choice-button treatment. */
+.year-chip span {
+  display: grid;
+  min-width: 70px;
+  min-height: 40px;
+  place-items: center;
+  padding: 0 16px;
+  border: 1px solid #dbe4ee;
+  border-radius: 12px;
+  background: #fff;
+  color: #52657b;
+  box-shadow: 0 1px 2px rgba(23, 54, 93, 0.04);
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.year-chip:hover span {
+  transform: translateY(-1px);
+  border-color: #8daecc;
+  color: #17365d;
+  box-shadow: 0 3px 9px rgba(23, 54, 93, 0.1);
+}
+
+.year-chip input:checked + span {
+  border-color: #17365d;
+  background: #17365d;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(23, 54, 93, 0.2);
+}
+
+.year-chip input:focus-visible + span {
+  outline: 3px solid rgba(131, 185, 245, 0.85);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .year-chip span {
+    min-width: 70px;
   }
 }
 @media (max-height: 700px) and (min-width: 761px) {
