@@ -12,13 +12,13 @@ export async function GET(req) {
   try {
     await ensureCellStatusTable(pool);
     await ensureProjectRowTables(pool);
-    const [ps] = await pool.query('SELECT id, name FROM projects ORDER BY sort_order, id');
-    const [rows] = await pool.query('SELECT * FROM monthly');
-    const [savedYears] = await pool.query('SELECT `year` FROM app_years');
-    const [cellStatuses] = await pool.query('SELECT project_id,`year`,`month`,field,status FROM monthly_cell_status');
-    const [projectRows] = await pool.query('SELECT id,project_id,label,operation,sort_order FROM project_rows ORDER BY project_id,sort_order,id');
-    const [baseRows] = await pool.query('SELECT project_id,field,label,is_active,sort_order FROM project_base_rows ORDER BY project_id,sort_order,field');
-    const [projectRowValues] = await pool.query('SELECT row_id,`year`,`month`,amount FROM project_row_values');
+    const { rows: ps } = await pool.query('SELECT id, name FROM projects ORDER BY sort_order, id');
+    const { rows } = await pool.query('SELECT * FROM monthly');
+    const { rows: savedYears } = await pool.query('SELECT year FROM app_years');
+    const { rows: cellStatuses } = await pool.query('SELECT project_id,year,month,field,status FROM monthly_cell_status');
+    const { rows: projectRows } = await pool.query('SELECT id,project_id,label,operation,sort_order FROM project_rows ORDER BY project_id,sort_order,id');
+    const { rows: baseRows } = await pool.query('SELECT project_id,field,label,is_active,sort_order FROM project_base_rows ORDER BY project_id,sort_order,field');
+    const { rows: projectRowValues } = await pool.query('SELECT row_id,year,month,amount FROM project_row_values');
     const rowValues = new Map(projectRowValues.map((row) => [`${row.row_id}:${row.year}:${row.month}`, Number(row.amount)]));
     const rowsByProject = new Map();
     for (const row of projectRows) {

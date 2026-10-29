@@ -1,1 +1,1 @@
-module.exports = { serverExternalPackages: ['mysql2', 'xlsx'] };
+module.exports = { serverExternalPackages: ['mysql2', 'pg', 'xlsx'] };

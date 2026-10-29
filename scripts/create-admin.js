@@ -56,7 +56,7 @@ try {
   await ensureAuthTables();
   const passwordHash = await hashPassword(password);
   await pool.query(
-    'INSERT INTO app_users (id,username,password_hash) VALUES (1,?,?)',
+    'INSERT INTO app_users (id,username,password_hash) VALUES (1,$1,$2)',
     [username, passwordHash],
   );
   stdout.write(`Akun admin "${username}" berhasil dibuat.\n`);

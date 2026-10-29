@@ -11,6 +11,8 @@
     "lint": "next lint",
     "start": "next start",
     "seed": "node --env-file=.env.local scripts/seed.js",
+    "db:init": "node --env-file=.env.local scripts/init-db.js",
+    "migrate:xampp": "node --env-file=.env.local scripts/migrate-xampp-to-neon.js",
     "snapshot": "node --env-file=.env.local scripts/snapshot.mjs",
     "create-admin": "node --env-file=.env.local scripts/create-admin.js"
   },
@@ -19,6 +21,7 @@
     "framer-motion": "^14.3.0",
     "mysql2": "^3.11.3",
     "next": "^15.5.28",
+    "pg": "^8.16.3",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"

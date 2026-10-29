@@ -14,7 +14,7 @@ export async function POST(req) {
       return bad('Tahun harus berupa bilangan bulat antara 1990 dan 9999');
     }
 
-    await pool.query('INSERT IGNORE INTO app_years (`year`) VALUES (?)', [year]);
+    await pool.query('INSERT INTO app_years (year) VALUES ($1) ON CONFLICT (year) DO NOTHING', [year]);
     return NextResponse.json({ ok: true, year });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

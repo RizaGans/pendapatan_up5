@@ -34,21 +34,25 @@ export async function POST(request) {
   }
 
   try {
-    await pool.query('DELETE FROM app_login_limits WHERE window_started < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY) LIMIT 100');
-    await pool.query('DELETE FROM app_sessions WHERE expires_at <= UTC_TIMESTAMP() LIMIT 100');
+    await pool.query(
+      'DELETE FROM app_login_limits WHERE key_hash IN (SELECT key_hash FROM app_login_limits WHERE window_started < CURRENT_TIMESTAMP - INTERVAL \'1 day\' LIMIT 100)',
+    );
+    await pool.query(
+      'DELETE FROM app_sessions WHERE token_hash IN (SELECT token_hash FROM app_sessions WHERE expires_at <= CURRENT_TIMESTAMP LIMIT 100)',
+    );
     const ip = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'local';
     const attemptKey = createHash('sha256').update(`${username}\0${ip}`).digest('hex');
-    const [limits] = await pool.query(
+    const { rows: limits } = await pool.query(
       `SELECT attempts, window_started,
-              window_started > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE) AS in_window
-       FROM app_login_limits WHERE key_hash=?`,
+              (window_started > CURRENT_TIMESTAMP - INTERVAL '15 minutes') AS in_window
+       FROM app_login_limits WHERE key_hash=$1`,
       [attemptKey],
     );
     if (limits[0]?.in_window && Number(limits[0].attempts) >= 8) {
       return NextResponse.json({ error: 'Terlalu banyak percobaan. Coba lagi dalam 15 menit.' }, { status: 429 });
     }
 
-    const [users] = await pool.query('SELECT id,username,password_hash FROM app_users WHERE id=1 LIMIT 1');
+    const { rows: users } = await pool.query('SELECT id,username,password_hash FROM app_users WHERE id=1 LIMIT 1');
     const user = users[0];
     const passwordValid = user
       ? await verifyPassword(password, user.password_hash)
@@ -59,16 +63,22 @@ export async function POST(request) {
     if (!valid) {
       await pool.query(
         `INSERT INTO app_login_limits (key_hash,window_started,attempts)
-         VALUES (?,UTC_TIMESTAMP(),1)
-         ON DUPLICATE KEY UPDATE
-           attempts=IF(window_started < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE),1,attempts+1),
-           window_started=IF(window_started < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE),UTC_TIMESTAMP(),window_started)`,
+         VALUES ($1,CURRENT_TIMESTAMP,1)
+         ON CONFLICT (key_hash) DO UPDATE SET
+           attempts=CASE
+             WHEN app_login_limits.window_started < CURRENT_TIMESTAMP - INTERVAL '15 minutes' THEN 1
+             ELSE app_login_limits.attempts+1
+           END,
+           window_started=CASE
+             WHEN app_login_limits.window_started < CURRENT_TIMESTAMP - INTERVAL '15 minutes' THEN CURRENT_TIMESTAMP
+             ELSE app_login_limits.window_started
+           END`,
         [attemptKey],
       );
       return invalidCredentials();
     }
 
-    await pool.query('DELETE FROM app_login_limits WHERE key_hash=?', [attemptKey]);
+    await pool.query('DELETE FROM app_login_limits WHERE key_hash=$1', [attemptKey]);
     const token = await createSession(user.id);
     const response = NextResponse.json({ ok: true, username: user.username });
     response.cookies.set(SESSION_COOKIE, token, {

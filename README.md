@@ -1,42 +1,41 @@
-# Pendapatan Project Regional 5 (Next.js + MySQL XAMPP)
+# Pendapatan Project Regional 5 (Next.js + Neon PostgreSQL)
 
-## Persiapan
+## Konfigurasi
 1. Pasang Node.js 20.6 atau lebih baru.
-2. Buka XAMPP Control Panel, jalankan **MySQL** (Apache tidak wajib). Cek lewat http://localhost/phpmyadmin.
-3. Di folder project ini:
+2. Buat project Neon PostgreSQL dan salin connection string pooled (`DATABASE_URL`) dari Neon. Jangan masukkan kredensial database ke Git atau chat.
+3. Buat `.env.local` dari `.env.local.example`, lalu isi `DATABASE_URL`. Untuk migrasi, isi juga `SOURCE_DB_*` dengan akses XAMPP lokal.
+4. Pasang dependency dan siapkan skema lokal:
    ```
    npm install
-   copy .env.local.example .env.local      (Mac/Linux: cp)
-   npm run seed
-   npm run create-admin
+   npm run db:init
+   npm run migrate:xampp
    npm run dev
    ```
-   `.env.local.example` adalah template yang dibagikan bersama kode. `.env.local` adalah konfigurasi lokal yang dibaca Next.js dan perintah seed/snapshot; file ini diabaikan Git agar setelan tiap komputer tidak ikut dibagikan. Edit `.env.local` jika konfigurasi MySQL Anda berbeda.
-4. Buka http://localhost:3000 dan masuk menggunakan akun yang dibuat pada langkah sebelumnya.
+   `npm run db:init` membuat skema PostgreSQL 11 tabel tanpa memasukkan seed data. `npm run migrate:xampp` menyalin data lama ke Neon dan memeriksa jumlah baris setelah penyalinan.
+5. Setelah migrasi terverifikasi, jalankan `npm run create-admin` jika akun admin belum ikut dimigrasikan. Buka http://localhost:3000 dan uji login serta baca/tulis data.
 
-`npm run seed` membuat database `pendapatan_up5` dan tabel. Data awal dari `data/seed.json` hanya dimasukkan ketika database belum memiliki project maupun data bulanan. Setelah itu MySQL menjadi sumber utama; setiap perubahan project atau data bulanan dari website memperbarui `data/seed.json` sebagai snapshot. Menjalankan seed ulang pada database yang sudah berisi data tidak menimpa perubahan. Nama database jangan diubah. Jika MySQL Anda memakai password, isi `DB_PASSWORD` di `.env.local`.
+## Migrasi XAMPP ke Neon
+XAMPP merupakan sumber migrasi yang hanya dibaca. Script tidak menghapus atau mengubah datanya. Sebelum migrasi:
+- Pastikan backup XAMPP tersedia dan MySQL XAMPP aktif.
+- Hentikan sementara perubahan data melalui website selama migrasi agar salinan konsisten; XAMPP tetap dipertahankan sebagai cadangan setelah migrasi.
+- Atur `DATABASE_URL` ke Neon dan `SOURCE_DB_HOST`, `SOURCE_DB_PORT`, `SOURCE_DB_USER`, `SOURCE_DB_PASSWORD`, `SOURCE_DB_NAME` ke XAMPP di `.env.local`.
+- Jalankan `npm run db:init`, lalu `npm run migrate:xampp`.
 
-Jika database sudah dibuat sebelum fitur daftar tahun ditambahkan, jalankan `npm run seed` sekali lagi untuk membuat tabel `app_years`. Seed akan melewati pemasukan data awal jika database sudah berisi project atau data bulanan.
+Script menyalin kesebelas tabel dalam transaksi, menghentikan proses apabila salah satu tabel tujuan sudah berisi data, dan mencocokkan jumlah baris sumber/tujuan. Jika proses gagal di tengah transaksi, perubahan Neon dibatalkan. Jangan arahkan `DATABASE_URL` ke database Neon yang sudah berisi data. Jangan hapus XAMPP sebelum login, pembacaan, dan penyimpanan di website lokal serta deployment Vercel berhasil diuji.
 
-## Login satu akun
-Autentikasi memakai database MySQL project yang sama. Setelah `npm run seed`, jalankan `npm run create-admin` satu kali di terminal interaktif untuk membuat akun admin. Username disimpan di MySQL; sandi di-hash memakai scrypt dan tidak disimpan sebagai teks biasa. Hanya satu akun dapat dibuat. Halaman dashboard dan seluruh API data memerlukan sesi yang masih berlaku.
+Untuk Neon dan Vercel, gunakan `DATABASE_URL` yang sama (connection string pooled Neon), simpan sebagai environment variable Vercel untuk environment yang digunakan, lalu deploy ulang. Jangan memasukkan kredensial ke repository.
 
-Sesi disimpan di MySQL selama 8 jam. Browser hanya menerima token acak pada cookie HttpOnly, Secure di production, dan SameSite Strict; database menyimpan hash tokennya. Login dibatasi setelah 8 percobaan gagal dalam 15 menit per username dan alamat IP. Saat memakai reverse proxy, konfigurasikan proxy untuk menimpa header alamat IP (`X-Real-IP` atau `X-Forwarded-For`), bukan meneruskan nilai dari pengunjung. Gunakan HTTPS saat dipasang ke server, batasi akses jaringan MySQL hanya dari server aplikasi, gunakan akun database khusus dengan hak minimum, dan buat backup database terenkripsi.
+## Database dan akun admin
+Website menggunakan PostgreSQL sebagai sumber data bersama; perubahan tersimpan di Neon sehingga instance lokal dan Vercel membaca database yang sama. `db/schema.sql` mendefinisikan tabel `projects`, `app_users`, `app_sessions`, `app_login_limits`, `app_years`, `monthly`, `monthly_cell_status`, `audit_log`, `project_rows`, `project_row_values`, dan `project_base_rows`.
 
-Untuk mereset sandi, hapus baris `app_users` dan `app_sessions` dari database, lalu jalankan kembali `npm run create-admin`. Operasi ini menonaktifkan semua sesi yang ada.
+Untuk project database baru tanpa migrasi, jalankan `npm run db:init` lalu `npm run seed` untuk memasukkan data contoh dari `data/seed.example.json`. Jangan jalankan seed contoh pada database tujuan migrasi. Untuk membuat akun admin satu kali, jalankan `npm run create-admin` di terminal interaktif; sandi di-hash memakai scrypt. Sesi berlaku 8 jam dan login dibatasi setelah 8 percobaan gagal dalam 15 menit per username dan alamat IP.
 
-## Kolaborasi developer
-Repo ini tidak membagikan `.env.local` atau `data/seed.json`. Clone baru memakai `data/seed.example.json` yang berisi data contoh anonim saat `npm run seed` dijalankan. Buat `.env.local` lokal dari `.env.local.example`, lalu atur koneksi MySQL masing-masing developer.
+`data/seed.json` adalah snapshot lokal, bukan sumber data produksi atau mekanisme sinkronisasi antarmesin. PostgreSQL adalah sumber kebenaran. `npm run snapshot` hanya mengekspor database ke file lokal saat diperlukan.
 
-Jika database diubah langsung di luar website, jalankan `npm run snapshot` untuk menyamakan kembali `data/seed.json` dengan MySQL.
-
-## Struktur
-- `db/schema.sql`: tabel akun dan sesi login, `projects`, `app_years` (daftar tahun yang tersedia), `monthly` (satu baris per project, tahun, bulan), `audit_log`.
-- `app/api/data`: membaca semua data. `app/api/entry`: menyimpan atau menghapus data bulanan (dengan validasi dan catatan audit). `app/api/projects`: membuat, mengganti nama, dan menghapus kontrak. `app/api/history`: membaca riwayat perubahan. `app/api/import`: impor xlsx atau csv.
-- `lib/parse.js`: pembaca format sheet PDPTN (kolom A project, B uraian, C sampai N Januari sampai Desember).
-- `lib/ui.js` dan `components/shell.js`: antarmuka yang sama dengan prototipe v2.
-
-## Catatan
-- Rumus (realisasi, % SLA, dan lainnya) dihitung di sisi tampilan (`lib/ui.js`).
-- Pencarian/filter tersedia di Ringkasan, Input manual, hasil impor, dan riwayat perubahan.
-- Satu akun admin; belum ada peran pengguna.
+## Pengembangan
+- `npm run dev`: menjalankan website lokal.
+- `npm run build`: memeriksa build produksi.
+- `npm run lint`: menjalankan ESLint Next.js.
+- `npm run db:init`: membuat tabel dan index PostgreSQL jika belum tersedia.
+- `npm run seed`: memasukkan data contoh hanya jika tabel proyek dan bulanan masih kosong.
+- `npm run migrate:xampp`: memindahkan data XAMPP ke database Neon yang kosong.
