@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [typing, setTyping] = useState(false);
   const typingTimer = useRef(null);
   const loginAudio = useRef(null);
+  const loginFailureAudio = useRef(null);
 
   useEffect(() => () => window.clearTimeout(typingTimer.current), []);
 
@@ -27,14 +28,10 @@ export default function LoginPage() {
   async function submit(event) {
     event.preventDefault();
     if (submitting) return;
-    if (!loginAudio.current) {
-      loginAudio.current = new Audio('/sounds/sound.mp3');
-      loginAudio.current.preload = 'auto';
-    }
-    loginAudio.current.currentTime = 0;
-    void loginAudio.current.play().catch((cause) => {
-      console.warn('Audio login tidak dapat diputar:', cause);
-    });
+    loginAudio.current ??= new Audio('/sounds/sound.mp3');
+    loginFailureAudio.current ??= new Audio('/sounds/ack.mp3');
+    loginAudio.current.preload = 'auto';
+    loginFailureAudio.current.preload = 'auto';
     setSubmitting(true);
     setError('');
     try {
@@ -45,8 +42,16 @@ export default function LoginPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Login gagal.');
+      loginAudio.current.currentTime = 0;
+      void loginAudio.current.play().catch((cause) => {
+        console.warn('Audio login tidak dapat diputar:', cause);
+      });
       window.location.assign('/');
     } catch (cause) {
+      loginFailureAudio.current.currentTime = 0;
+      void loginFailureAudio.current.play().catch((audioError) => {
+        console.warn('Audio kegagalan login tidak dapat diputar:', audioError);
+      });
       setError(cause.message || 'Tidak dapat menghubungi server.');
       setSubmitting(false);
     }

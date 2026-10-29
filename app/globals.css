@@ -2087,6 +2087,17 @@ h1 {
   grid-column: auto;
 }
 
+.dashboard-card-insight {
+  margin: 14px 0 0;
+  padding: 16px 18px;
+  border: 1px solid var(--ln);
+  border-left: 4px solid var(--A);
+  border-radius: 12px;
+  color: var(--tx);
+  background: color-mix(in srgb, var(--A) 7%, var(--sf));
+  line-height: 1.65;
+}
+
 .dashboard-card-modal__content svg {
   width: 100%;
   height: auto;
